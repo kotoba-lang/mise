@@ -1,0 +1,40 @@
+(ns mise.pricing-test
+  (:require [clojure.test :refer [deftest is testing]]
+            [mise.pricing :as pricing]))
+
+(deftest price-arith-test
+  (is (= 300 (:amount (pricing/line-total (pricing/price 100) 3))))
+  (is (= 0 (:amount (pricing/line-total (pricing/price 100) 0))))
+  (is (= 250 (:amount (pricing/add (pricing/price 100) (pricing/price 150)))))
+  (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+               (pricing/add (pricing/price 100 "JPY") (pricing/price 50 "USD")))))
+
+(deftest subtotal-test
+  (let [lines [{:unit-price (pricing/price 100) :qty 2}
+               {:unit-price (pricing/price 250) :qty 1}]]
+    (is (= 450 (:amount (pricing/subtotal lines))))))
+
+(deftest totals-test
+  (let [lines [{:unit-price (pricing/price 1000) :qty 2}] ; subtotal 2000
+        t (pricing/totals lines {:tax (pricing/flat-tax 0.08)        ; 160
+                                 :shipping (pricing/->FreeShipping)})]
+    (is (= 2000 (:amount (:subtotal t))))
+    (is (= 160 (:amount (:tax t))))
+    (is (= 0 (:amount (:shipping t))))
+    (is (= 2160 (:amount (:total t))))))
+
+(deftest discount-test
+  (let [lines [{:unit-price (pricing/price 1000) :qty 1}]
+        t (pricing/totals lines {:discount (reify pricing/IDiscount
+                                            (apply-discount [_ _ _] (pricing/price 100)))})]
+    (is (= 100 (:amount (:discount t))))
+    (is (= 900 (:amount (:total t)))))
+
+  (testing "no-discount adapter is zero"
+    (let [t (pricing/totals [{:unit-price (pricing/price 100) :qty 1}] {})]
+      (is (= 0 (:amount (:discount t)))))))
+
+(deftest format-price-test
+  (is (= "¥12,800" (pricing/format-price (pricing/price 12800))))
+  (is (= "$1,000" (pricing/format-price (pricing/price 1000 "USD"))))
+  (is (= "¥0" (pricing/format-price (pricing/price 0)))))
