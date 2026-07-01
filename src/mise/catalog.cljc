@@ -67,3 +67,50 @@
   [product]
   (or (first (:variants product))
       (when (:price product) product)))
+
+;; ---------------------------------------------------------------------------
+;; category tree (parent/child hierarchy)
+;; ---------------------------------------------------------------------------
+
+(defn category-tree
+  "Build a {parent → #{children}} map from a Catalog's :categories (which may
+  be a flat map of {id → label} or already a tree). v1: categories are flat;
+  this returns an empty tree (host app supplies the hierarchy). When the catalog
+  :categories map has entries shaped {id → {:label :parent}}, builds the tree."
+  [catalog']
+  (let [cats (:categories catalog' {})]
+    (reduce (fn [tree [id spec]]
+              (if (map? spec)
+                (let [parent (:parent spec)]
+                  (if parent
+                    (update tree parent (fnil conj #{}) id)
+                    tree))
+                tree))
+            {} cats)))
+
+(defn child-categories
+  "Direct children of a category id, given a category-tree."
+  [tree cat-id]
+  (get tree cat-id #{}))
+
+(defn descendant-categories
+  "All descendants of a category id (recursive). Returns a set."
+  [tree cat-id]
+  (loop [queue [cat-id] found #{}]
+    (if-let [c (first queue)]
+      (let [children (child-categories tree c)
+            new-children (remove found children)
+            found' (into found children)]
+        (recur (concat (rest queue) new-children) found'))
+      found)))
+
+(defn products-in-category
+  "Products in a category AND all its descendants (given a category-tree).
+  For a flat catalog (no tree), falls back to direct :category match."
+  ([src cat-id]
+   (products-in-category src cat-id {}))
+  ([src cat-id tree]
+   (let [descendants (descendant-categories tree cat-id)
+         all-cats (conj descendants cat-id)
+         products (if (map? src) (:products src) src)]
+     (filterv #(contains? all-cats (:category %)) products))))
