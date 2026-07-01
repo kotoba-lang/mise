@@ -9,7 +9,8 @@
   adapter that always authorizes. Stripe/live adapters are follow-ups.
 
   Portable .cljc, zero host effects."
-  (:require [mise.pricing :as pricing]
+  (:require [clojure.string :as str]
+            [mise.pricing :as pricing]
             [mise.cart :as cart]
             [mise.order :as order]))
 
@@ -65,6 +66,45 @@
   (let [required (get required-fields stage #{})
         fields (stage-fields checkout stage)]
     (seq (filter #(not (contains? fields %)) required))))
+
+;; ---------------------------------------------------------------------------
+;; shipping address validation
+;; ---------------------------------------------------------------------------
+
+(defn postal-valid?
+  "Stub postal format check: non-blank and 3-10 chars with no whitespace runs.
+  v1 does NOT verify country-specific formats (JP 〒XXX-XXXX, US ZIP, etc.) —
+  the host app injects a real validator. This just rejects obviously-bad input."
+  [postal]
+  (let [s (str postal)]
+    (and (<= 3 (count s) 10)
+         (not (re-find #"\s\s" s))
+         (re-find #"[0-9]" s))))
+
+(defn email-valid?
+  "Stub email format: contains '@' with a dot in the domain part."
+  [email]
+  (let [s (str email)]
+    (boolean (and (str/includes? s "@")
+                  (re-find #"\.[a-zA-Z]{2,}$" s)))))
+
+(defn validate-shipping-address
+  "Return a map of {:field → error-message} for invalid shipping fields. Empty
+  map = all valid. Checks required presence + email/postal format."
+  [shipping]
+  (let [errors (atom {})]
+    (doseq [k [:address :city :postal :country]]
+      (when (str/blank? (get shipping k))
+        (swap! errors assoc k "required")))
+    (when (and (not (str/blank? (:postal shipping)))
+               (not (postal-valid? (:postal shipping))))
+      (swap! errors assoc :postal "invalid format"))
+    @errors))
+
+(defn shipping-valid?
+  "True if the shipping address passes validation (no errors)."
+  [shipping]
+  (empty? (validate-shipping-address shipping)))
 
 (defn set-field
   "Set a single field in the current stage's field map. Returns a new Checkout."
