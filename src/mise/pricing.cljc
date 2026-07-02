@@ -65,6 +65,40 @@
 
 (defn no-discount [] (->NoDiscount))
 
+;; ---------------------------------------------------------------------------
+;; volume/tiered discount (qty-break pricing) — a concrete IDiscount adapter
+;; ---------------------------------------------------------------------------
+
+(defrecord VolumeDiscount [tiers]
+  ;; tiers is a sorted (desc by qty) seq of [min-qty discount-fraction], e.g.
+  ;; [[10 0.10] [5 0.05] [1 0.0]] — buy ≥10 get 10% off, ≥5 get 5%, else 0.
+  ;; The discount applies to the whole line based on its qty.
+  IDiscount
+  (apply-discount [_ ctx subtotal]
+    (let [qty (get ctx :qty (get ctx :total-qty 0))]
+      (if-let [tier (some (fn [[min-q _]] (when (>= qty min-q) min-q)) tiers)]
+        (let [frac (some (fn [[min-q f]] (when (= min-q tier) f)) tiers)]
+          (->Price (* (:amount subtotal 0) frac) (:currency subtotal "JPY")))
+        (zero-price)))))
+
+(defn volume-discount
+  "Build a VolumeDiscount from a tiers map {min-qty → fraction}. Returns a
+  discount adapter whose fraction is the highest tier the qty reaches."
+  [tiers-map]
+  (let [tiers (sort-by first > (seq tiers-map))]        ; desc by min-qty
+    (->VolumeDiscount tiers)))
+
+(defrecord BundleDiscount [bundle-qty bundle-fraction]
+  ;; Buy N of qualifying items, get bundle-fraction off. ctx carries :bundle-qty.
+  IDiscount
+  (apply-discount [_ ctx subtotal]
+    (let [q (get ctx :bundle-qty 0)]
+      (if (>= q bundle-qty)
+        (->Price (* (:amount subtotal 0) bundle-fraction) (:currency subtotal "JPY"))
+        (zero-price)))))
+
+(defn bundle-discount [bundle-qty fraction] (->BundleDiscount bundle-qty fraction))
+
 (defprotocol ITax
   (compute-tax [this ctx subtotal]
     "Return a Price representing the tax on subtotal. ctx may carry :rate or

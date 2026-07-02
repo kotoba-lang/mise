@@ -67,3 +67,95 @@
   [product]
   (or (first (:variants product))
       (when (:price product) product)))
+
+;; ---------------------------------------------------------------------------
+;; category tree (parent/child hierarchy)
+;; ---------------------------------------------------------------------------
+
+(defn category-tree
+  "Build a {parent → #{children}} map from a Catalog's :categories (which may
+  be a flat map of {id → label} or already a tree). v1: categories are flat;
+  this returns an empty tree (host app supplies the hierarchy). When the catalog
+  :categories map has entries shaped {id → {:label :parent}}, builds the tree."
+  [catalog']
+  (let [cats (:categories catalog' {})]
+    (reduce (fn [tree [id spec]]
+              (if (map? spec)
+                (let [parent (:parent spec)]
+                  (if parent
+                    (update tree parent (fnil conj #{}) id)
+                    tree))
+                tree))
+            {} cats)))
+
+(defn child-categories
+  "Direct children of a category id, given a category-tree."
+  [tree cat-id]
+  (get tree cat-id #{}))
+
+(defn descendant-categories
+  "All descendants of a category id (recursive). Returns a set."
+  [tree cat-id]
+  (loop [queue [cat-id] found #{}]
+    (if-let [c (first queue)]
+      (let [children (child-categories tree c)
+            new-children (remove found children)
+            found' (into found children)]
+        (recur (concat (rest queue) new-children) found'))
+      found)))
+
+(defn products-in-category
+  "Products in a category AND all its descendants (given a category-tree).
+  For a flat catalog (no tree), falls back to direct :category match."
+  ([src cat-id]
+   (products-in-category src cat-id {}))
+  ([src cat-id tree]
+   (let [descendants (descendant-categories tree cat-id)
+         all-cats (conj descendants cat-id)
+         products (if (map? src) (:products src) src)]
+     (filterv #(contains? all-cats (:category %)) products))))
+
+;; ---------------------------------------------------------------------------
+;; variant matrix (size × color grid generation)
+;; ---------------------------------------------------------------------------
+
+(defn variant-matrix
+  "Generate a Cartesian-product variant grid from sizes and colors. Returns a
+  vec of SKU maps {:id :name :options {:size :color}}. id = product-id + size +
+  color slug. Caller attaches :price per-variant after generation."
+  [product-id sizes colors]
+  (if (or (empty? sizes) (empty? colors))
+    ;; single dimension if one is empty
+    (vec
+     (for [s (sort-by identity sizes)]
+       {:id (str product-id "-" (name s))
+        :product-id product-id
+        :name (name s)
+        :options {:size s}}))
+    (vec
+     (for [s (sort-by identity sizes)
+           c (sort-by identity colors)]
+       (let [id (str product-id "-" (name s) "-" (name c))]
+         {:id id
+          :product-id product-id
+          :name (str (name s) " / " (name c))
+          :options {:size s :color c}})))))
+
+(defn attach-prices
+  "Given variants (from variant-matrix) and a price map {option-key → Price},
+  attach :price to each variant whose options match. Variants without a match
+  get the :default price (or nil if no default)."
+  [variants price-map]
+  (mapv (fn [v]
+          (let [opts (:options v)
+                price (or (some (fn [[k val]] (get-in price-map [k val])) opts)
+                          (:default price-map))]
+            (assoc v :price price)))
+        variants))
+
+(defn variant-by-option
+  "Find a variant by a partial option match, e.g. {:size :m}. Returns the first
+  matching variant or nil."
+  [product option-match]
+  (some #(when (every? (fn [[k v]] (= (get-in % [:options k]) v)) option-match) %)
+        (:variants product [])))

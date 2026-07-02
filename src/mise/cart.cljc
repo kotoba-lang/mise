@@ -71,3 +71,39 @@
    (pricing/totals (:lines cart) opts)))
 
 (defn empty? [cart] (zero? (line-count cart)))
+
+;; ---------------------------------------------------------------------------
+;; cart-level discount application
+;; ---------------------------------------------------------------------------
+
+(defn total-qty
+  "Sum of all line quantities (for volume-discount threshold checks)."
+  [cart]
+  (reduce + 0 (map :qty (:lines cart))))
+
+(defn apply-cart-discount
+  "Compute cart totals with a discount applied. The discount is an IDiscount
+  adapter; the ctx passed to it includes :total-qty and :cart. Returns the
+  totals map (with :discount, :total)."
+  ([cart discount]
+   (apply-cart-discount cart discount nil))
+  ([cart discount extra-ctx]
+   (let [ctx (merge {:total-qty (total-qty cart)
+                     :cart cart}
+                    extra-ctx)]
+     (totals cart {:discount discount :ctx ctx}))))
+
+(defn discount-savings
+  "Return the discount amount (a Price) from applying a discount to the cart."
+  ([cart discount]
+   (discount-savings cart discount nil))
+  ([cart discount extra-ctx]
+   (:discount (apply-cart-discount cart discount extra-ctx))))
+
+(defn net-total
+  "Cart subtotal minus discount amount. Returns a Price."
+  ([cart discount]
+   (net-total cart discount nil))
+  ([cart discount extra-ctx]
+   (let [t (apply-cart-discount cart discount extra-ctx)]
+     (pricing/add (:subtotal t) (pricing/multiply (:discount t) -1)))))
