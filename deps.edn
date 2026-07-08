@@ -24,4 +24,8 @@
                        reagent/reagent           {:mvn/version "1.2.0"}
                        re-frame/re-frame         {:mvn/version "1.4.3"}}}
   ;; shadow-css class extraction (build-time, same path as slides/shitsuke)
-  :pages {:extra-deps {com.thheller/shadow-css {:mvn/version "0.6.1"}}}}}
+  :pages {:extra-deps {com.thheller/shadow-css {:mvn/version "0.6.1"}}}
+  ;; clj-kondo as a Clojars lib (no Homebrew/system install needed).
+  :lint {:replace-deps {clj-kondo/clj-kondo {:mvn/version "2024.11.14"}}
+         :main-opts ["-m" "clj-kondo.main" "--lint" "src" "test"
+                     "--fail-level" "error"]}}}
