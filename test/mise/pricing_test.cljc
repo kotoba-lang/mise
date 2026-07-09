@@ -23,6 +23,13 @@
     (is (= 0 (:amount (:shipping t))))
     (is (= 2160 (:amount (:total t))))))
 
+(deftest flat-tax-rounds-fractional-tax-test
+  ;; FlatTax must round to nearest, not truncate -- 999 * 0.08 = 79.92,
+  ;; which truncates to 79 but must round to 80 per the namespace docstring's
+  ;; "rounds tax to the nearest whole unit" contract.
+  (let [t (pricing/compute-tax (pricing/flat-tax 0.08) {} (pricing/price 999))]
+    (is (= 80 (:amount t)))))
+
 (deftest discount-test
   (let [lines [{:unit-price (pricing/price 1000) :qty 1}]
         t (pricing/totals lines {:discount (reify pricing/IDiscount

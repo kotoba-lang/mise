@@ -106,7 +106,9 @@
 
 (defrecord FlatTax [rate]
   ITax (compute-tax [_ _ subtotal]
-        (->Price (long (* (:amount subtotal 0) (or rate 0))) (:currency subtotal "JPY"))))
+        (->Price #?(:clj (Math/round (double (* (:amount subtotal 0) (or rate 0))))
+                    :cljs (js/Math.round (* (:amount subtotal 0) (or rate 0))))
+                  (:currency subtotal "JPY"))))
 
 (defn flat-tax
   "Simple flat-rate tax adapter (rate is a fraction, 0.08 = 8%)."
