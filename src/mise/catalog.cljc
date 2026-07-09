@@ -125,13 +125,16 @@
   color slug. Caller attaches :price per-variant after generation."
   [product-id sizes colors]
   (if (or (empty? sizes) (empty? colors))
-    ;; single dimension if one is empty
-    (vec
-     (for [s (sort-by identity sizes)]
-       {:id (str product-id "-" (name s))
-        :product-id product-id
-        :name (name s)
-        :options {:size s}}))
+    ;; single dimension if one is empty -- use whichever of sizes/colors is
+    ;; actually populated, not sizes unconditionally, else a colors-only
+    ;; product (empty sizes) silently generates zero variants.
+    (let [[dim opt-key] (if (seq sizes) [sizes :size] [colors :color])]
+      (vec
+       (for [v (sort-by identity dim)]
+         {:id (str product-id "-" (name v))
+          :product-id product-id
+          :name (name v)
+          :options {opt-key v}})))
     (vec
      (for [s (sort-by identity sizes)
            c (sort-by identity colors)]
