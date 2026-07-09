@@ -54,7 +54,7 @@
 (deftest checkout-next-test
   (rf/dispatch [:cart/add sample-line])
   (rf/dispatch [:checkout/start])
-  (rf/dispatch [:checkout/set-field :contact :email "a@b"])
+  (rf/dispatch [:checkout/set-field :contact :email "a@b.com"])
   (rf/dispatch [:checkout/set-field :contact :name "x"])
   (rf/dispatch [:checkout/next])
   (is (= :shipping (:stage @(rf/subscribe [:checkout/checkout]))))
