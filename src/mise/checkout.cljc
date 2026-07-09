@@ -59,14 +59,6 @@
     :payment  (:payment checkout)
     {}))
 
-(defn validate-stage
-  "Return nil if the stage's required fields are present, else a seq of missing
-  keys. A nil/empty result means the stage is valid."
-  [checkout stage]
-  (let [required (get required-fields stage #{})
-        fields (stage-fields checkout stage)]
-    (seq (filter #(not (contains? fields %)) required))))
-
 ;; ---------------------------------------------------------------------------
 ;; shipping address validation
 ;; ---------------------------------------------------------------------------
@@ -105,6 +97,27 @@
   "True if the shipping address passes validation (no errors)."
   [shipping]
   (empty? (validate-shipping-address shipping)))
+
+(defn validate-stage
+  "Return nil if the stage's required fields are present AND well-formed,
+  else a seq of invalid field keys (missing, or present but failing format
+  validation -- email-valid? for :contact, validate-shipping-address for
+  :shipping). A nil/empty result means the stage is valid. Format checks
+  used to be dead code from this gating path: next-stage only ever checked
+  presence, so a malformed email/postal code sailed straight through to
+  :payment/:review/place-order despite email-valid?/postal-valid? already
+  existing and correctly rejecting it when called directly."
+  [checkout stage]
+  (let [required (get required-fields stage #{})
+        fields (stage-fields checkout stage)
+        missing (filter #(not (contains? fields %)) required)
+        invalid (case stage
+                  :contact  (when (and (contains? fields :email)
+                                       (not (email-valid? (:email fields))))
+                              [:email])
+                  :shipping (keys (validate-shipping-address fields))
+                  nil)]
+    (seq (distinct (concat missing invalid)))))
 
 (defn set-field
   "Set a single field in the current stage's field map. Returns a new Checkout."

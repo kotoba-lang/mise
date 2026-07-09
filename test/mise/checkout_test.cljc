@@ -15,14 +15,40 @@
   (let [co (checkout/checkout c)]
     (is (seq (checkout/validate-stage co :contact))) ; missing email+name
     (is (nil? (checkout/validate-stage
-               (-> co (checkout/set-field :contact :email "a@b") (checkout/set-field :contact :name "x"))
+               (-> co (checkout/set-field :contact :email "a@b.com") (checkout/set-field :contact :name "x"))
                :contact)))))
+
+(deftest validate-stage-rejects-a-malformed-but-present-email
+  (testing "an email that's present but fails email-valid?'s format check
+            must fail validate-stage too -- regression: validate-stage only
+            ever checked PRESENCE of required keys, never format, so
+            email-valid?/validate-shipping-address were dead code from the
+            checkout gating path (next-stage) despite existing and
+            correctly rejecting bad input when called directly"
+    (let [co (-> (checkout/checkout c)
+                 (checkout/set-field :contact :email "a@b") ; no dot in domain
+                 (checkout/set-field :contact :name "x"))]
+      (is (= '(:email) (checkout/validate-stage co :contact)))
+      (is (:errors (checkout/next-stage co))
+          "next-stage must not advance past an invalid email"))))
+
+(deftest validate-stage-rejects-a-malformed-postal-code
+  (testing "a shipping postal code that's present but fails postal-valid?
+            must fail validate-stage :shipping too"
+    (let [co (-> (checkout/checkout c)
+                 (assoc :stage :shipping)
+                 (checkout/set-field :shipping :address "1-2-3")
+                 (checkout/set-field :shipping :city "Tokyo")
+                 (checkout/set-field :shipping :postal "x") ; too short, no digit
+                 (checkout/set-field :shipping :country "JP"))]
+      (is (= '(:postal) (checkout/validate-stage co :shipping)))
+      (is (:errors (checkout/next-stage co))))))
 
 (deftest next-stage-guards-validation-test
   (let [co (checkout/checkout c)]
     (is (:errors (checkout/next-stage co)))              ; contact incomplete
     (let [filled (-> co
-                     (checkout/set-field :contact :email "a@b")
+                     (checkout/set-field :contact :email "a@b.com")
                      (checkout/set-field :contact :name "x"))
           r (checkout/next-stage filled)]
       (is (:ok r))
@@ -35,7 +61,7 @@
   "A checkout with all stage fields filled, advanced to :review."
   []
   (let [co (-> (checkout/checkout c)
-               (checkout/set-field :contact :email "a@b")
+               (checkout/set-field :contact :email "a@b.com")
                (checkout/set-field :contact :name "x")
                (checkout/set-field :shipping :address "1-2-3")
                (checkout/set-field :shipping :city "Tokyo")
