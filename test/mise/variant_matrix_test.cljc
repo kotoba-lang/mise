@@ -24,6 +24,18 @@
       (is (contains? opts {:size :s}))
       (is (contains? opts {:size :m})))))
 
+(deftest variant-matrix-colors-only-single-dimension-test
+  ;; A color-only product (no size dimension, e.g. a one-size accessory) must
+  ;; generate one variant per color, not silently drop every variant.
+  (let [vs (catalog/variant-matrix "pk" (set []) (set [:red :blue]))]
+    (is (= 2 (count vs)))
+    (let [opts (set (map :options vs))]
+      (is (contains? opts {:color :red}))
+      (is (contains? opts {:color :blue})))))
+
+(deftest variant-matrix-both-empty-test
+  (is (= [] (catalog/variant-matrix "pk" (set []) (set [])))))
+
 (deftest attach-prices-test
   (let [vs (catalog/variant-matrix "pk" (set [:m :l]) (set [:black]))
         priced (catalog/attach-prices vs {:default (pricing/price 38000)})]
