@@ -21,6 +21,14 @@
   (let [c (-> (cart/cart) (cart/add-line line) (cart/remove-line "ph-m"))]
     (is (cart/empty? c))))
 
+(deftest clear-test
+  (let [c (-> (cart/cart)
+              (cart/add-line line)
+              (cart/add-line {:sku "x" :qty 2}))]
+    (is (not (cart/empty? c)))
+    (is (= (cart/cart) (cart/clear c)))
+    (is (cart/empty? (cart/clear c)))))
+
 (deftest totals-test
   (let [c (-> (cart/cart)
               (cart/add-line line)

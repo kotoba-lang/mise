@@ -55,7 +55,9 @@
   [cart sku]
   (->Cart (filterv #(not= (:sku %) sku) (:lines cart))))
 
-(defn clear [cart] (cart))
+(defn clear
+  "Return an empty cart, discarding any existing lines."
+  [_cart] (cart))
 
 (defn line-count [cart] (count (:lines cart)))
 
