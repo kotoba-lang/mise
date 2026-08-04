@@ -41,13 +41,32 @@
       (->Price (+ (:amount a 0) (:amount b 0)) cur))))
 
 (defn multiply
-  "Multiply a price by a scalar (e.g. qty). Returns a Price."
+  "Multiply a price by a scalar (e.g. qty). Returns a Price.
+
+  **nil means \"no price\", which multiplies to zero.** `cart/net-total`
+  depends on this: with no discount applied it evaluates
+  `(multiply nil -1)` and needs a zero back rather than an exception.
+
+  A price that is *present but malformed* (a map whose `:amount` is not a
+  number) is a different thing and throws — absent and corrupt should not
+  produce the same answer."
   [p n]
+  (when (and (some? p) (not (number? (:amount p))))
+    (throw (ex-info "malformed price: :amount is not a number" {:price p})))
   (->Price (* (:amount p 0) (or n 0)) (:currency p "JPY")))
 
 (defn line-total
-  "unit-price × qty."
+  "unit-price × qty for a cart/order line.
+
+  **Unlike `multiply`, a nil unit-price is an error here, not a zero.**
+  A line item always has a price; when one is missing the old behaviour
+  silently produced ¥0 and the row rendered as free — a pricing error that
+  looks exactly like a legitimately free item and is only noticed after
+  the money has moved. Failing here is the cheapest place to catch it."
   [unit-price qty]
+  (when-not (number? (:amount unit-price))
+    (throw (ex-info "line-total requires a unit price"
+                    {:unit-price unit-price :qty qty})))
   (multiply unit-price qty))
 
 ;; ---------------------------------------------------------------------------
