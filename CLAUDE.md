@@ -2,9 +2,10 @@
 
 **Status: R2**
 
-純粋な `.cljc` の EC ライブラリ。runtime dep は `shitsuke`（design system）と
-`chobo`（audit ledger / subscription / invoice）だけで、ネットワーク・I/O・
-時計への依存を持たない。ホストが port を注入する。
+純粋な `.cljc` の EC ライブラリ。ネットワーク・I/O・時計への依存を持たず、
+ホストが port を注入する。runtime dep は `shitsuke`（design system）/
+`chobo`（audit ledger / subscription / invoice）/ `kessai`（決済 rail 抽象 ——
+`mise.redirect` だけが使う）。
 
 ## 成熟度の梯子（この repo における R-tier の意味）
 
