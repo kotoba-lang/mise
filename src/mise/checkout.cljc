@@ -73,25 +73,57 @@
          (not (re-find #"\s\s" s))
          (re-find #"[0-9]" s))))
 
+(def no-postal-code-countries
+  "ISO 3166-1 alpha-2 codes for countries that operate **no postal code
+  system at all** (UPU postal-code列 が空の国、抜粋)。
+
+  Requiring a postal code unconditionally made these destinations
+  unshippable: a Hong Kong customer with a complete, deliverable address
+  was told `{:postal \"required\"}` and could not get past the shipping
+  step. That is not a strict validator, it is a country blocklist that
+  nobody wrote down.
+
+  The list is deliberately data, not a regex, so a host can extend it
+  without patching the validator."
+  #{"AE" "AG" "AO" "AW" "BF" "BI" "BJ" "BS" "BW" "BZ" "CD" "CF" "CG" "CI"
+    "CK" "CM" "DJ" "DM" "ER" "FJ" "GD" "GH" "GM" "GQ" "GY" "HK" "JM" "KI"
+    "KM" "KN" "KP" "LC" "LY" "ML" "MO" "MR" "MW" "NR" "NU" "QA" "RW" "SB"
+    "SC" "SL" "SO" "SR" "ST" "SY" "TL" "TO" "TT" "TV" "TZ" "UG" "VU" "WS"
+    "YE" "ZW"})
+
+(defn postal-required?
+  "Does this destination country use postal codes at all? Unknown/blank
+  countries default to `true` — the common case is that a code exists."
+  [country]
+  (not (contains? no-postal-code-countries (str/upper-case (str/trim (str country))))))
+
 (defn email-valid?
-  "Stub email format: contains '@' with a dot in the domain part."
+  "Email format check: a non-blank local part with no whitespace, '@', and a
+  domain ending in a dot-suffix of at least two letters.
+
+  The previous version only asked whether '@' appeared *somewhere* and
+  whether the string ended in a TLD-looking suffix, so `\"@.com\"`,
+  `\"@@@.com\"` and `\"a b@x.com\"` were all accepted — an address with no
+  local part passes every downstream check and then bounces silently at
+  send time, after the order is already placed."
   [email]
-  (let [s (str email)]
-    (boolean (and (str/includes? s "@")
-                  (re-find #"\.[a-zA-Z]{2,}$" s)))))
+  (boolean (re-matches #"[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}" (str email))))
 
 (defn validate-shipping-address
   "Return a map of {:field → error-message} for invalid shipping fields. Empty
   map = all valid. Checks required presence + email/postal format."
   [shipping]
-  (let [errors (atom {})]
-    (doseq [k [:address :city :postal :country]]
-      (when (str/blank? (get shipping k))
-        (swap! errors assoc k "required")))
-    (when (and (not (str/blank? (:postal shipping)))
-               (not (postal-valid? (:postal shipping))))
-      (swap! errors assoc :postal "invalid format"))
-    @errors))
+  (let [country (:country shipping)
+        need-postal? (postal-required? country)
+        required (cond-> [:address :city :country]
+                   need-postal? (conj :postal))
+        missing (into {} (for [k required
+                               :when (str/blank? (get shipping k))]
+                           [k "required"]))
+        bad-postal (when (and (not (str/blank? (:postal shipping)))
+                              (not (postal-valid? (:postal shipping))))
+                     {:postal "invalid format"})]
+    (merge missing bad-postal)))
 
 (defn shipping-valid?
   "True if the shipping address passes validation (no errors)."

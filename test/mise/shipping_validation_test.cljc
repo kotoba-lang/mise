@@ -34,3 +34,44 @@
   (let [errs (co/validate-shipping-address
               {:address "1" :city "X" :postal "xx" :country "JP"})]
     (is (= "invalid format" (:postal errs)))))   ; "xx" fails postal-valid?
+
+;; ── local part の無いメールを通していた ─────────────────────────────────────
+
+(deftest email-requires-a-local-part
+  (testing "旧実装は '@' が**どこかに**あって末尾が TLD 風なら通していた。
+            local part の無いアドレスは下流の検査を全部通り、注文が確定した
+            あとの送信時に黙って bounce する。"
+    (is (not (co/email-valid? "@.com")))
+    (is (not (co/email-valid? "@@@.com")))
+    (is (not (co/email-valid? "a b@x.com")) "空白を含むアドレスも不正")
+    (is (not (co/email-valid? "alice@")))
+    (is (not (co/email-valid? "alice@localhost")) "ドット無しドメインは不可"))
+  (testing "正当なアドレスは通り続ける"
+    (is (co/email-valid? "alice@gftd.ai"))
+    (is (co/email-valid? "a@b.com"))
+    (is (co/email-valid? "first.last+tag@sub.example.co.jp"))))
+
+;; ── 郵便番号を持たない国へ配送できなかった ──────────────────────────────────
+
+(deftest postal-code-is-not-universal
+  (testing "**郵便番号を無条件必須にしていたので、香港の完全な住所が
+            {:postal \"required\"} で弾かれていた。** 厳しい検証ではなく、
+            誰も書いていない国別ブロックリストとして機能していた。"
+    (let [hk {:address "1 Queen's Rd Central" :city "Hong Kong" :postal "" :country "HK"}]
+      (is (empty? (co/validate-shipping-address hk)))
+      (is (co/shipping-valid? hk)))
+    (is (not (co/postal-required? "HK")))
+    (is (not (co/postal-required? "ae")) "大小文字を問わない")
+    (is (co/postal-required? "JP"))
+    (is (co/postal-required? "") "国が不明なら必須側に倒す"))
+  (testing "郵便番号を使う国では従来どおり必須・形式検査もする"
+    (is (= {:postal "required"}
+           (co/validate-shipping-address
+            {:address "1-1" :city "Tokyo" :postal "" :country "JP"})))
+    (is (= {:postal "invalid format"}
+           (co/validate-shipping-address
+            {:address "1-1" :city "Tokyo" :postal "xx" :country "JP"}))))
+  (testing "郵便番号の無い国でも、書いてあれば形式は検査する"
+    (is (= {:postal "invalid format"}
+           (co/validate-shipping-address
+            {:address "1 Queen's Rd" :city "HK" :postal "xx" :country "HK"})))))

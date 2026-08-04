@@ -45,3 +45,22 @@
   (is (= "¥12,800" (pricing/format-price (pricing/price 12800))))
   (is (= "$1,000" (pricing/format-price (pricing/price 1000 "USD"))))
   (is (= "¥0" (pricing/format-price (pricing/price 0)))))
+
+;; ── 単価欠損が「無料」になっていた ──────────────────────────────────────────
+
+(deftest line-total-refuses-a-missing-unit-price
+  (testing "旧実装は nil 単価を ¥0 にして返した。値付けミスが『正当な無料商品』と
+            見分けのつかない形で表示され、気付くのは代金が動いたあと。"
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (pricing/line-total nil 3)))
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (pricing/line-total {:currency "JPY"} 3))))
+  (testing "正しい単価は従来どおり"
+    (is (= 2700 (:amount (pricing/line-total (pricing/price 900) 3))))))
+
+(deftest multiply-keeps-absent-but-rejects-corrupt
+  (testing "nil は『割引なし』の意味で cart/net-total が依存しているのでゼロのまま"
+    (is (= 0 (:amount (pricing/multiply nil -1)))))
+  (testing "存在するのに :amount が数値でない Price は破損であって不在ではない"
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                 (pricing/multiply {:amount "900" :currency "JPY"} 2)))))
