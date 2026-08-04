@@ -8,6 +8,12 @@
         ;; chobo: services-EC foundation (audit-ledger EAVT + subscription +
         ;; invoice + tenant), extracted from itonami. mise.order projects to
         ;; chobo.ledger via mise.ledger (stub adapter).
+        ;; kessai: 決済 rail 抽象。mise.redirect だけが使う（hosted-redirect の
+        ;; session ライフサイクル）。mise.checkout は素のまま — リダイレクト決済を
+        ;; 使わない消費者にこの結合を読ませる理由が無い。
+        io.github.kotoba-lang/kessai
+        {:git/url "https://github.com/kotoba-lang/kessai.git"
+         :git/sha "50d8af95aa3b461cce9c9d0d152f368cf95ea535"}
         io.github.kotoba-lang/chobo
         {:git/url "https://github.com/kotoba-lang/chobo.git"
          :git/sha "716e8f88753cb26cf52cb14116337ba211968ef1"}}
