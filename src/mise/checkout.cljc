@@ -9,7 +9,7 @@
   adapter that always authorizes. Stripe/live adapters are follow-ups.
 
   Portable .cljc, zero host effects."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [mise.pricing :as pricing]
             [mise.cart :as cart]
             [mise.order :as order]))
@@ -95,7 +95,7 @@
   "Does this destination country use postal codes at all? Unknown/blank
   countries default to `true` — the common case is that a code exists."
   [country]
-  (not (contains? no-postal-code-countries (str/upper-case (str/trim (str country))))))
+  (not (contains? no-postal-code-countries (str/upper (str/trim (str country))))))
 
 (defn email-valid?
   "Email format check: a non-blank local part with no whitespace, '@', and a

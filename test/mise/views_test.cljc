@@ -1,7 +1,7 @@
 (ns mise.views-test
   "SSR parity: mise.views render to stable HTML via shitsuke.hiccup/->html.
   The same data reagent mounts in the browser must serialize identically."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.lang.text] [clojure.test :refer [deftest is testing]]
             [shitsuke.hiccup :as hic]
             [mise.pricing :as pricing]
             [mise.views :as views]
@@ -15,11 +15,11 @@
 
 (deftest product-card-renders-test
   (let [html (hic/->html (views/product-card prod {:act-add :cart/add}))]
-    (is (clojure.string/includes? html "class=\"shitsuke__product-card\""))
-    (is (clojure.string/includes? html "data-product=\"parker-hatra\""))
-    (is (clojure.string/includes? html "GIFTED × HATRA パーカ"))
-    (is (clojure.string/includes? html "¥38,000"))
-    (is (clojure.string/includes? html "data-act=\"cart/add\""))))
+    (is (kotoba.lang.text/includes? html "class=\"shitsuke__product-card\""))
+    (is (kotoba.lang.text/includes? html "data-product=\"parker-hatra\""))
+    (is (kotoba.lang.text/includes? html "GIFTED × HATRA パーカ"))
+    (is (kotoba.lang.text/includes? html "¥38,000"))
+    (is (kotoba.lang.text/includes? html "data-act=\"cart/add\""))))
 
 (deftest price-renders-test
   (is (= "<span class=\"shitsuke__price\">¥1,280</span>"
@@ -29,15 +29,15 @@
   (let [html (hic/->html (views/cart-line {:sku "ph-m" :name "パーカ M" :qty 2
                                             :unit-price (pricing/price 38000)}
                                            {:act-inc :cart/inc :act-dec :cart/dec :act-remove :cart/remove}))]
-    (is (clojure.string/includes? html "data-sku=\"ph-m\""))
-    (is (clojure.string/includes? html "¥76,000")))) ; line total
+    (is (kotoba.lang.text/includes? html "data-sku=\"ph-m\""))
+    (is (kotoba.lang.text/includes? html "¥76,000")))) ; line total
 
 (deftest ssr-root-html-stable-test
   (let [html (ssr/root-html (ssr/sample-db))]
-    (is (clojure.string/starts-with? html "<!doctype html>"))
-    (is (clojure.string/includes? html "GIFTED × HATRA パーカ"))
-    (is (clojure.string/includes? html "--shitsuke-colors-")) ; token vars inlined
-    (is (clojure.string/includes? html "Checkout — contact"))))
+    (is (kotoba.lang.text/starts-with? html "<!doctype html>"))
+    (is (kotoba.lang.text/includes? html "GIFTED × HATRA パーカ"))
+    (is (kotoba.lang.text/includes? html "--shitsuke-colors-")) ; token vars inlined
+    (is (kotoba.lang.text/includes? html "Checkout — contact"))))
 
 (deftest ssr-vs-reagent-data-parity-test
   (is (= (hic/->html (ssr/root (ssr/sample-db)))

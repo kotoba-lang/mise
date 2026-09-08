@@ -7,7 +7,7 @@
   simple rate (0.08 = 8%). Discounts are an injected IDiscount port (stub).
 
   Portable .cljc, zero host effects."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defrecord Price [amount currency])
 
