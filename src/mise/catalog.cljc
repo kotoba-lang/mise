@@ -9,7 +9,7 @@
   Portable .cljc, zero host effects. The catalog is plain data the host loads
   (from a fixture, D1, an API, …); this namespace only shapes and queries it."
   (:refer-clojure :exclude [filter])
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defrecord Product [id brand name category description images variants])
 (defrecord SKU [id product-id name options price])
@@ -44,12 +44,12 @@
   "Naive case-insensitive substring search over product :name/:description."
   [src q]
   (let [products (if (map? src) (:products src) src)
-        ql (some-> q str str/lower-case)]
+        ql (some-> q str str/lower)]
     (if (str/blank? ql)
       (vec products)
       (filterv (fn [p]
-                 (let [n (some-> (:name p) str str/lower-case)
-                       d (some-> (:description p) str str/lower-case)]
+                 (let [n (some-> (:name p) str str/lower)
+                       d (some-> (:description p) str str/lower)]
                    (or (and n (str/includes? n ql))
                        (and d (str/includes? d ql)))))
                products))))
