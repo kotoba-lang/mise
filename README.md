@@ -42,8 +42,8 @@ mise = catalog + pricing + cart + inventory + checkout + order + events + views
 ## Tests
 
 ```bash
-clojure -M:test            # published git shitsuke dep
-clojure -M:local:test      # local ../shitsuke override (workspace dev)
+kbb -M:test            # published git shitsuke dep
+kbb -M:local:test      # local ../shitsuke override (workspace dev)
 ```
 
 ## Design
