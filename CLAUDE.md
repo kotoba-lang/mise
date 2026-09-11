@@ -68,6 +68,6 @@ authorization を発行せず、成否はあとから webhook で届くので、
 ## 検証
 
 ```bash
-clojure -M:test   # 81 tests / 234 assertions
-clojure -M:lint   # errors 0（warning は既存分が残っている）
+kbb -M:test   # 81 tests / 234 assertions
+kbb -M:lint   # errors 0（warning は既存分が残っている）
 ```
