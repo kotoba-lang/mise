@@ -1,6 +1,6 @@
 (ns mise.variant-matrix-test
   "Variant matrix: size × color grid generation + price attachment + lookup."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.catalog :as catalog]
             [mise.pricing :as pricing]))
 

@@ -1,6 +1,6 @@
 (ns mise.category-tree-test
   "Category tree: parent/child hierarchy + descendant search + products-in-category."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.catalog :as catalog]
             [mise.pricing :as pricing]))
 

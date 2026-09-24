@@ -1,6 +1,6 @@
 (ns mise.shipping-validation-test
   "Shipping address validation: required fields + email/postal format."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.checkout :as co]))
 
 (def valid-ship {:address "1-2-3" :city "Tokyo" :postal "100-0001" :country "JP"})
