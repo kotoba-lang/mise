@@ -1,5 +1,5 @@
 (ns mise.redirect-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.cart :as cart]
             [mise.checkout :as co]
             [mise.pricing :as pricing]

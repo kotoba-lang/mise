@@ -1,5 +1,5 @@
 (ns mise.inventory-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.inventory :as inventory]))
 
 (def stk (inventory/stock {"ph-m" 5 "ph-l" 0}))

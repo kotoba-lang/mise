@@ -1,7 +1,7 @@
 (ns mise.views-test
   "SSR parity: mise.views render to stable HTML via shitsuke.hiccup/->html.
   The same data reagent mounts in the browser must serialize identically."
-  (:require [kotoba.lang.text] [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.lang.text] [kotoba.test :refer [deftest is testing]]
             [shitsuke.hiccup :as hic]
             [mise.pricing :as pricing]
             [mise.views :as views]

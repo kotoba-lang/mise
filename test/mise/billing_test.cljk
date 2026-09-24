@@ -1,6 +1,6 @@
 (ns mise.billing-test
   "Cross-domain: mise.order → chobo.invoice."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.billing :as billing]
             [mise.order :as order]
             [mise.pricing :as pricing]

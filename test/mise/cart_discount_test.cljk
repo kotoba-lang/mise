@@ -1,6 +1,6 @@
 (ns mise.cart-discount-test
   "Cart-level discount application + savings + net total."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [mise.cart :as cart]
             [mise.pricing :as pricing]))
 
